@@ -6,6 +6,9 @@ project(${PROJECT} LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 11)
 
 
+option(BUILD_EXAMPLES off "Build projects in ./examples")
+
+
 set(LEXER_HEADERS
     include/scl/token.h
     include/scl/parse.h
@@ -28,3 +31,10 @@ set(CMD_SOURCES
 
 add_library(${PROJECT} ${LEXER_HEADERS} ${LEXER_SOURCES} ${CMD_HEADERS} ${CMD_SOURCES})
 target_include_directories(${PROJECT} PUBLIC include)
+
+
+if ( ${BUILD_EXAMPLES} )
+    add_subdirectory(examples/common)
+    add_subdirectory(examples/lexer)
+    add_subdirectory(examples/command)
+endif ()

@@ -62,6 +62,8 @@ const char* shl_str_token(SHLToken type)
 {
     switch (type)
     {
+    case SHLT_None:
+        return "None";
     case SHLT_EOF:
         return "EOF";
     case SHLT_Whitespace:

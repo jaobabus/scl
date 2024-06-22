@@ -31,7 +31,8 @@ static bool parse_next_error_state(StateContext* context, char next);
 static bool parse_next_not_inited (StateContext* context, char next);
 
 typedef bool(*ParseNext)(StateContext* context, char next);
-static ParseNext const parse_table[] = {
+static ParseNext const parse_table[16] = {
+    parse_next_none,
     parse_next_eof,
     parse_next_error_state,
     parse_next_whitespace,
@@ -42,7 +43,6 @@ static ParseNext const parse_table[] = {
     parse_next_string_dq,
     parse_next_subprogram,
     parse_next_argument,
-    parse_next_reserved,
     parse_next_reserved,
     parse_next_reserved,
     parse_next_reserved,
@@ -67,7 +67,7 @@ static void reset_token(StateContext* context, uint8_t type)
 
 static void done_token(StateContext* context)
 {
-    reset_token(context, SHLT_EOF);
+    reset_token(context, SHLT_None);
 }
 
 static void parsed(StateContext* context, char parsed)
@@ -89,7 +89,7 @@ static void set_state(StateContext* context, uint8_t state)
 static bool parse_next_none(StateContext* context, char next)
 {
     if (next == '\0') {
-        context->state = 1;
+        reset_token(context, SHLT_EOF);
         return false;
     }
     else if (next == ' ' or next == '\t') {
@@ -130,8 +130,6 @@ static bool parse_next_not_inited(StateContext* context, char next)
 
 static bool parse_next_eof(StateContext* context, char next)
 {
-    if (context->state != 1)
-        return parse_next_none(context, next);
     return false;
 }
 

@@ -61,9 +61,13 @@ typedef enum
 {
 #define SHLI_CVT_OFFSET_DTE_11 SHLT_EOF
 
+    /** Default value of token
+     */
+    SHLT_None = 0,
+
     /** Eof marker ('\0')
      */
-    SHLT_EOF = 0,
+    SHLT_EOF,
 
     /** State error marker
      */

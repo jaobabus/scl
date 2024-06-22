@@ -17,7 +17,9 @@ set(SOURCES
     src/textmap.cpp
     include/properties.hpp
     src/properties.cpp
+    include/tokencolors.h
     )
 
 add_library(${PROJECT} ${SOURCES})
 target_include_directories(${PROJECT} PUBLIC include)
+target_link_libraries(${PROJECT} PUBLIC scl)
