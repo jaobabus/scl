@@ -69,11 +69,11 @@ typedef enum
      */
     SHLT_EOF,
 
+#define SHLI_CVT_OFFSET_DTE_12 SHLT_StateError
+
     /** State error marker
      */
     SHLT_StateError,
-
-#define SHLI_CVT_OFFSET_DTE_12 (SHLT_Whitespace - 1) // avoid ambiguous for EOF and whitespace
 
     /** Whitespace marker (' ', '\t')
      */

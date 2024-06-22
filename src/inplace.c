@@ -13,8 +13,8 @@
 typedef uint8_t bool;
 
 
-#define FLAG_HAS_HEAD 0x80
-#define FLAG_HAS_DATA 0x40
+#define FLAG_HAS_HEAD  0x80
+#define FLAG_HAS_DATA  0x40
 #define FLAG_SWAP_TEMP 0x20 // for sizeof(header) == 2
 #define FLAG_STATE_ERR 0x10
 
@@ -45,7 +45,7 @@ uint8_t get_data_type(uint8_t token)
 {
     size_t i;
     SHLIDataInfo info;
-    for (i = 0; i < sizeof(cvt_table_wi); i++) {
+    for (i = 1; i < sizeof(cvt_table_wi); i++) {
         if (token < (cvt_table_wi[i] & 0x1F))
             return i - 1;
     }
@@ -59,8 +59,10 @@ void make_head(SHLInplaceContext* ctx, uint8_t token)
     ctx->current = (char*)ctx->current + (cvt_table_wi[dt] >> 7);
     ctx->flags = (cvt_table_wi[dt] & (FLAG_HAS_DATA | FLAG_SWAP_TEMP))
                  | (token == SHLT_StateError ? FLAG_STATE_ERR : 0);
-    if (cvt_table_wi[dt] & FLAG_HAS_HEAD)
-        *(uint8_t*)ctx->head = (token - (cvt_table_wi[dt] & 0x1F)) | init_mask_table[dt];
+    if (cvt_table_wi[dt] & FLAG_HAS_HEAD) {
+        uint8_t tokoff = (dt == SHLI_CVT_DTE_12 ? 1 : cvt_table_wi[dt] & 0x1F); // :(
+        *(uint8_t*)ctx->head = (token - tokoff) | init_mask_table[dt];
+    }
 }
 
 
@@ -97,7 +99,7 @@ void shli_end(SHLInplaceContext* ctx)
 {
     if (ctx->flags & FLAG_SWAP_TEMP) {
         *(uint8_t*)ctx->current = ctx->temp;
-        uint16_t size = (char*)ctx->current - (char*)ctx->head;
+        uint16_t size = (char*)ctx->current - (char*)ctx->head - 1;
         *((uint8_t*)ctx->head) |= (size >> 5) & 0x78;
         *((uint8_t*)ctx->head + 1) = size & 0xFF;
         ctx->current = (char*)ctx->current + 1;
@@ -144,7 +146,8 @@ SHLIDataInfo shli_parse_data(const void* phead)
         }
         info.data = (const char*)phead
                     + (cvt_table_wi[info.data_type] & FLAG_HAS_HEAD ? 1 : 0);
-        info.token = (cvt_table_wi[info.data_type] & 0x3F) + (head & 0x07);
+        uint8_t tokoff = (info.data_type == SHLI_CVT_DTE_12 ? 1 : cvt_table_wi[info.data_type] & 0x1F); // :(
+        info.token = tokoff + (head & 0x07);
     }
     else if (head > 0x7F) {
         // data 2.*

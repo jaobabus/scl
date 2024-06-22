@@ -9,7 +9,7 @@
 class Example3 : public BaseExample
 {
 public:
-    Example3() : BaseExample("Example 3 / Hello") {}
+    Example3() : BaseExample("Example 3 / Parse inplace string") {}
 
 
 public:
