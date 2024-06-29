@@ -1,5 +1,10 @@
 #include "example05.hpp"
 
+#include <vector>
+#include <scl/parse.h>
+#include <scl/inplace.h>
+#include <tokencolors.h>
+
 #include <iostream>
 
 
@@ -7,7 +12,7 @@
 
 int Example5::run()
 {
-    std::cout << "Hello from example 1!" << std::endl;
+    std::cout << "..." << std::endl;
 
     return 0;
 }

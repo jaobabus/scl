@@ -9,7 +9,7 @@
 class Example4 : public BaseExample
 {
 public:
-    Example4() : BaseExample("Example 4 / Hello") {}
+    Example4() : BaseExample("Example 4 / Colored console input") {}
 
 
 public:

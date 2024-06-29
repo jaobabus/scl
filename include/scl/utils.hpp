@@ -2,8 +2,11 @@
 #define UTILS_H
 
 
-#include <cstddef>
-#include <string>
+#include <stddef.h>
+#include <string.h>
+
+
+#ifdef __cplusplus
 
 
 struct StringView
@@ -18,29 +21,6 @@ struct StringView
     const char* end() const noexcept { return data() + size(); }
 
 };
-
-
-
-namespace cmd
-{
-
-struct Description
-{
-    const char* name;
-    const char* hint;
-    const char* description;
-    const char* usage;
-};
-
-
-struct Error
-{
-    const char* error;
-    uint8_t argument;
-};
-
-
-}
 
 
 template<typename... A>
@@ -138,10 +118,12 @@ constexpr typename FindTupleContainer<Tuple, index>::container::type& get(Tuple&
     return info::get(tuple);
 }
 
-template<size_t index, typename Tuple>
+template<size_t _index, typename Tuple>
 struct tuple_element
 {
-    using type = typename FindTupleContainer<Tuple, index>::container::type;
+    using type = typename FindTupleContainer<Tuple, _index>::container::type;
+    static constexpr size_t index = _index;
+    static constexpr size_t offset = FindTupleContainer<Tuple, index>::offset;
 };
 
 
@@ -243,6 +225,10 @@ constexpr auto apply(F&& f, Cls* ptr, MyTuple<Args...>& tup)
     );
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+#endif
 
 
 #endif // UTILS_H

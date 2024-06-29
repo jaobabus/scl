@@ -1,7 +1,10 @@
 #ifndef SHLTOKEN_H
 #define SHLTOKEN_H
 
-#include "scl/inplace.h"
+#include <stdint.h>
+#include <stddef.h>
+
+#include "error.h"
 
 
 #ifdef __cplusplus
@@ -79,6 +82,10 @@ typedef enum
      */
     SHLT_Whitespace,
 
+    /** Variable (/$(\w+)/)
+     */
+    SHLT_FlagEquals,
+
 #define SHLI_CVT_OFFSET_DTE_13 SHLT_Flag
 
     /** Flag (/-([A-Za-z]\w*)/)
@@ -90,6 +97,8 @@ typedef enum
     SHLT_LongFlag,
 
     /** Variable (/$(\w+)/)
+     *
+     *  now not implemented
      */
     SHLT_Variable,
 
@@ -104,6 +113,8 @@ typedef enum
     SHLT_StringDQ,
 
     /** Subprogram (simplify apostrophe quoted string)
+     *
+     * now not implemented
      */
     SHLT_SubProgram,
 
@@ -115,18 +126,6 @@ typedef enum
 
 } SHLToken;
 
-
-enum SHLError {
-    SHLE_NoError,
-    SHLE_NotImplemented,
-    SHLE_UnknownState,
-    SHLE_UnknownEscape,
-    SHLE_EscapeError,
-    SHLE_UnexpectedToken,
-    SHLE_UnexpectedEOF,
-    SHLE_UnallowedChar,
-    SHLE_TooLongArgument
-};
 
 const char* shl_str_token(SHLToken type);
 

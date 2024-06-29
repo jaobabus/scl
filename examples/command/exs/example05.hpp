@@ -9,7 +9,7 @@
 class Example5 : public BaseExample
 {
 public:
-    Example5() : BaseExample("Example 5 / Hello") {}
+    Example5() : BaseExample("Example 5 / Merge tokens") {}
 
 
 public:

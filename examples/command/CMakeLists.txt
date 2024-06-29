@@ -44,4 +44,7 @@ set(SOURCES
 
 add_executable(${PROJECT} ${SOURCES})
 target_include_directories(${PROJECT} PUBLIC .)
+#target_compile_options(${PROJECT} PUBLIC "-fsanitize=address" "-fsanitize=undefined")
+#target_link_options(${PROJECT} PUBLIC "-fsanitize=address" "-fsanitize=undefined")
+#target_link_libraries(${PROJECT} asan ubsan)
 target_link_libraries(${PROJECT} common Boost::program_options)

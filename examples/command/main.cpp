@@ -11,6 +11,7 @@
 
 
 
+
 int main(int argc, const char** argv)
 {
     using namespace boost::program_options;
@@ -32,7 +33,10 @@ int main(int argc, const char** argv)
         std::cerr << options << '\n';
         std::cout << "Examples:\n";
         for (auto& ex : examples) {
-            std::cout << ex->name << "\n";
+            std::string attrs;
+            if (ex->get_info().block_terminal)
+                attrs += " NOECHO";
+            std::cout << ex->name << attrs << "\n";
         }
         return 1;
     }

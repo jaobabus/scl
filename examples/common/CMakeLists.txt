@@ -8,6 +8,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(SOURCES
     include/utils.hpp
     src/utils.cpp
+    include/coprintf.hpp
+    src/coprintf.cpp
     include/consolearea.hpp
     include/consolewidget.hpp
     src/consolewidget.cpp

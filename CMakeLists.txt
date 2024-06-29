@@ -9,6 +9,10 @@ set(CMAKE_CXX_STANDARD 11)
 option(BUILD_EXAMPLES off "Build projects in ./examples")
 
 
+set(UTIL_HEADERS
+    include/scl/error.h)
+
+
 set(LEXER_HEADERS
     include/scl/token.h
     include/scl/parse.h
@@ -23,13 +27,14 @@ set(LEXER_SOURCES
 set(CMD_HEADERS
     include/scl/argument.hpp
     include/scl/command.hpp
+    include/scl/executor.h
     include/scl/utils.hpp)
 
 set(CMD_SOURCES
-    )
+    src/executor.c)
 
 
-add_library(${PROJECT} ${LEXER_HEADERS} ${LEXER_SOURCES} ${CMD_HEADERS} ${CMD_SOURCES})
+add_library(${PROJECT} ${UTIL_HEADERS} ${LEXER_HEADERS} ${LEXER_SOURCES} ${CMD_HEADERS} ${CMD_SOURCES})
 target_include_directories(${PROJECT} PUBLIC include)
 
 

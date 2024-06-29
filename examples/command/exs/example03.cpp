@@ -12,9 +12,9 @@
 
 int Example3::run()
 {
-    std::string buffer{"cmd arg -fF --long-flag=value \"DStr\" 'SStr' `PStr`"};
+    std::string buffer{"cmd arg -fF --long-flag=value \"DStr\" 'SStr' `PStr` $VAR"};
 
-    std::vector<const void*> tokens;
+    std::vector<void*> tokens;
 
     const char* it = buffer.c_str();
     SHLParseState state{0};
@@ -43,7 +43,7 @@ int Example3::run()
     const char* size_color = "\033[38;5;210m";
     for (auto& token : tokens)
     {
-        SHLIDataInfo info = shli_parse_data(token);
+        SHLITokenInfo info = shli_parse_data(token);
         printf("%s%s: ",
                shlt_get_color((SHLToken)info.token),
                shl_str_token((SHLToken)info.token));
@@ -55,18 +55,18 @@ int Example3::run()
 
         case SHLI_CVT_DTE_12:
             printf("%02hhx\n",
-                   *(const uint8_t*)info.header);
+                   *(const uint8_t*)info.head);
             break;
 
         case SHLI_CVT_DTE_21:
             printf("%02hhx %02hhx ",
-                   ((const char*)info.header)[0],
-                   ((const char*)info.header)[1]);
+                   ((const char*)info.head)[0],
+                   ((const char*)info.head)[1]);
 
         case SHLI_CVT_DTE_13:
             if (info.data_type == SHLI_CVT_DTE_13)
                 printf("%02hhx ",
-                       ((const char*)info.header)[0]);
+                       ((const char*)info.head)[0]);
 
         case SHLI_CVT_DTE_3: {
             std::string buf{(const char*)info.data, (const char*)info.data + info.size};

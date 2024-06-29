@@ -10,13 +10,24 @@ extern "C" {
 #endif
 
 
+
 typedef struct
 {
-    int (*execute)(const void* command, const char* cmdline, size_t size);
-    const SHCArgument* arguments;
+    uint16_t error;
+    uint8_t token;
+    uint8_t pd[1];
+} SCLExecuteError;
+
+
+typedef struct
+{
+    SCLExecuteError (*execute)(const void* opaque, void* obj_buffer, const uint16_t* flags, size_t size);
+    uint8_t (*is_command)(const void* opaque, const char* name, size_t size);
+    const SCLArgument* arguments;
     uint8_t arg_count;
     uint8_t pd[3];
-} SHCCommand;
+} SCLCommand;
+
 
 
 #ifdef __cplusplus
@@ -25,94 +36,97 @@ typedef struct
 
 
 
-namespace cmd
-{
+#ifdef __cplusplus
 
-
-#define TYPED_ARGUMENT_REF(type, field) \
-    TypedArgumentTemplateRef<type, decltype(type::field), offsetof(type, field)>
-
-
-template<typename Container, typename Type, size_t t_offset>
-struct TypedArgumentTemplateRef
-{
-    using container = Container;
-    using type = Type;
-    constexpr static size_t offset = t_offset;
-};
 
 
 template<typename T>
 void construct_object(void* ptr)
 {
-    new(static_cast<T*>(ptr)) T();
+    // new(static_cast<T*>(ptr)) T(); ????
 }
 
-template<typename ArgRef>
-constexpr SHCArgument make_arg_desc()
+template<typename T>
+void destruct_object(void* ptr)
 {
-    return SHCArgument {
-        construct_object<typename ArgRef::type>,
-        ArgRef::sc_parse,
-        ArgRef::sc_completes,
-        (uint16_t)(sizeof(typename ArgRef::type))
+    static_cast<T*>(ptr)->~T();
+}
+
+template<typename Elem>
+constexpr SCLArgument make_arg_desc()
+{
+    using Arg = typename Elem::type;
+    return SCLArgument {
+        construct_object<typename Arg::type>,
+        destruct_object<typename Arg::type>,
+        Arg::sc_parse,
+        Arg::sc_completes,
+        (uint16_t)(sizeof(typename Arg::type)),
+        Elem::offset
     };
 }
 
+template<typename Tuple, typename Indices>
+struct SCLArgumentDescTable;
 
-class Command
+template<typename Tuple, size_t... indices>
+struct SCLArgumentDescTable<Tuple, std::index_sequence<indices...>>
 {
-public:
-    constexpr Command(const char* name, const cmd::Description* = {}) : name(name) {}
-
-    __attribute__((deprecated))
-    virtual const SHCArgument* get_argument(size_t index) const = 0;
-    const char* name;
-
+    SCLArgument table[sizeof...(indices)] =
+    {
+        make_arg_desc<tuple_element<indices, Tuple>>()...
+    };
 };
 
-
 template<typename... Args>
-class TypedCommand : public Command
+class TypedCommand
 {
 public:
-    using Command::Command;
-
-public:
-    static int sc_execute(const void* cmd, const char* cmdline, size_t size);
-
-public:
-    static constexpr SHCArgument arguments_table[]
+    static SCLExecuteError sc_execute(const void* opaque, void* obj_buffer, const uint16_t* flags, size_t size)
     {
-        make_arg_desc<Args>()...
-    };
+        auto err = apply(&TypedCommand<Args...>::execute, static_cast<const TypedCommand<Args...>*>(opaque), *static_cast<MyTuple<const typename Args::type...>*>(obj_buffer));
+        return SCLExecuteError{err, 0};
+    }
 
-    static constexpr SHCCommand sc_descriptor
+    static uint8_t sc_is_command(const void* opaque, const char* name, size_t size)
+    {
+        size_t th_name_size = strlen(static_cast<const TypedCommand<Args...>*>(opaque)->_name);
+        if (th_name_size != size)
+            return 0;
+        return memcmp(name, static_cast<const TypedCommand<Args...>*>(opaque)->_name, size) == 0;
+    }
+
+public:
+    TypedCommand(const char* name)
+        : _name(name) {}
+
+public:
+    static constexpr SCLArgumentDescTable<MyTuple<Args...>, std::make_index_sequence<sizeof...(Args)>> sc_arg_descriptors_table {};
+
+    static constexpr SCLCommand sc_descriptor
     {
         sc_execute,
-        arguments_table,
-        (uint8_t)(sizeof(arguments_table) / sizeof(arguments_table[0]))
+        sc_is_command,
+        sc_arg_descriptors_table.table,
+        (uint8_t)sizeof...(Args)
     };
 
 public:
-    virtual int execute(const typename Args::type&...) const noexcept = 0;
-    const SHCArgument* get_argument(size_t index) const override;
+    virtual SCLError execute(const typename Args::type&...) const noexcept = 0;
+
+private:
+    const char* _name;
 
 };
 
 template<typename... Args>
-constexpr SHCArgument TypedCommand<Args...>::arguments_table[];
+constexpr SCLArgumentDescTable<MyTuple<Args...>, std::make_index_sequence<sizeof...(Args)>> TypedCommand<Args...>::sc_arg_descriptors_table;
 template<typename... Args>
-constexpr SHCCommand TypedCommand<Args...>::sc_descriptor;
-
-template<typename... Args>
-const SHCArgument* TypedCommand<Args...>::get_argument(size_t index) const
-{
-    return (index < sc_descriptor.arg_count ? &arguments_table[index] : nullptr);
-}
+constexpr SCLCommand TypedCommand<Args...>::sc_descriptor;
 
 
-}
+
+#endif
 
 
 #endif // CMD_COMMAND_H

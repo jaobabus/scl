@@ -44,7 +44,7 @@ static
 uint8_t get_data_type(uint8_t token)
 {
     size_t i;
-    SHLIDataInfo info;
+    SHLITokenInfo info;
     for (i = 1; i < sizeof(cvt_table_wi); i++) {
         if (token < (cvt_table_wi[i] & 0x1F))
             return i - 1;
@@ -128,11 +128,11 @@ uint8_t shli_get_header_size(uint8_t data_type)
             + (cvt_table_wi[data_type] & FLAG_SWAP_TEMP ? 1 : 0);
 }
 
-SHLIDataInfo shli_parse_data(const void* phead)
+SHLITokenInfo shli_parse_data(void* phead)
 {
-    SHLIDataInfo info;
+    SHLITokenInfo info;
     uint8_t head = *(const uint8_t*)phead;
-    info.header = phead;
+    info.head = phead;
     if (head < 0x20) {
         // data 1.*
         info.size = 0;
@@ -144,7 +144,7 @@ SHLIDataInfo shli_parse_data(const void* phead)
             info.data_type = SHLI_CVT_DTE_13;
             info.size = ascii_strlen((const uint8_t*)phead + 1);
         }
-        info.data = (const char*)phead
+        info.data = (char*)phead
                     + (cvt_table_wi[info.data_type] & FLAG_HAS_HEAD ? 1 : 0);
         uint8_t tokoff = (info.data_type == SHLI_CVT_DTE_12 ? 1 : cvt_table_wi[info.data_type] & 0x1F); // :(
         info.token = tokoff + (head & 0x07);
@@ -152,7 +152,7 @@ SHLIDataInfo shli_parse_data(const void* phead)
     else if (head > 0x7F) {
         // data 2.*
         info.data_type = SHLI_CVT_DTE_21;
-        info.data = (const char*)phead + 2;
+        info.data = (char*)phead + 2;
         info.size =
                 ((uint16_t)*((const uint8_t*)phead + 0) << 5) & 0x0F00
                 | *((const uint8_t*)phead + 1);
@@ -161,16 +161,16 @@ SHLIDataInfo shli_parse_data(const void* phead)
     else {
         // data 3
         info.data_type = SHLI_CVT_DTE_3;
-        info.data = (const char*)phead;
+        info.data = (char*)phead;
         info.size = ascii_strlen((const uint8_t*)phead);
         info.token = SHLI_CVT_OFFSET_DTE_3;
     }
     return info;
 }
 
-SHLIDataInfo shli_next_token(SHLIDataInfo prev)
+SHLITokenInfo shli_next_token(SHLITokenInfo prev)
 {
-    return shli_parse_data((const char*)prev.data + prev.size);
+    return shli_parse_data((char*)prev.data + prev.size);
 }
 
 void shli_parse_inplace(void* buffer, size_t size)
@@ -179,7 +179,7 @@ void shli_parse_inplace(void* buffer, size_t size)
     SHLInplaceContext ictx = shli_make_context(buffer, SHLT_EOF);
     for (size_t i = 0; i < size; i++)
     {
-        SHLParseResult result = shl_parse_next(state, ((const char*)buffer)[i]);
+        SHLParseResult result = shl_parse_next(state, ((char*)buffer)[i]);
         if (shl_get_token(result.state) != shl_get_token(state)) {
             shli_end(&ictx);
             shli_reuse_context(&ictx, shl_get_token(result.state));
@@ -192,7 +192,12 @@ void shli_parse_inplace(void* buffer, size_t size)
     shli_end(&ictx);
 }
 
-
-
-
-
+SHLInplaceContext shli_continue(SHLITokenInfo token)
+{
+    SHLInplaceContext ctx;
+    ctx.head = token.head;
+    ctx.current = (char*)token.data + token.size;
+    ctx.flags = (cvt_table_wi[token.data_type] & (FLAG_HAS_DATA | FLAG_SWAP_TEMP))
+                | (token.token == SHLT_StateError ? FLAG_STATE_ERR : 0);
+    return ctx;
+}

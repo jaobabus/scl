@@ -1,4 +1,5 @@
 #include <scl/parse.h>
+#include <scl/error.h>
 
 #include <ctype.h>
 
@@ -36,6 +37,7 @@ static ParseNext const parse_table[16] = {
     parse_next_eof,
     parse_next_error_state,
     parse_next_whitespace,
+    parse_next_reserved,
     parse_next_flag,
     parse_next_long_flag,
     parse_next_variable,
@@ -43,7 +45,6 @@ static ParseNext const parse_table[16] = {
     parse_next_string_dq,
     parse_next_subprogram,
     parse_next_argument,
-    parse_next_reserved,
     parse_next_reserved,
     parse_next_reserved,
     parse_next_reserved,
@@ -75,7 +76,7 @@ static void parsed(StateContext* context, char parsed)
     context->parsed = parsed;
 }
 
-static void error(StateContext* context, enum SHLError err)
+static void error(StateContext* context, uint8_t err)
 {
     context->state = (SHLT_StateError << 4) | (uint8_t)(err);
 }
@@ -223,7 +224,7 @@ static bool parse_next_flag(StateContext* context, char next)
     }
     if (not isalnum(next)) {
         if (shl_get_state(context->state) < 2)
-            error(context, SHLE_UnexpectedToken);
+            error(context, SHLE_UnexpectedChar);
         else
             done_token(context);
         return true;
@@ -246,7 +247,7 @@ static bool parse_next_long_flag(StateContext* context, char next)
     }
     if (not isalnum(next) && next != '-') {
         if (shl_get_state(context->state) < 2)
-            error(context, SHLE_UnexpectedToken);
+            error(context, SHLE_UnexpectedChar);
         else
             done_token(context);
         return true;
@@ -269,7 +270,7 @@ static bool parse_next_variable(StateContext* context, char next)
     }
     if (not isalnum(next)) {
         if (shl_get_state(context->state) < 2)
-            error(context, SHLE_UnexpectedToken);
+            error(context, SHLE_UnexpectedChar);
         else
             done_token(context);
         return true;

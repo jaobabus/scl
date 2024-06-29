@@ -10,7 +10,7 @@
 
 int Example2::run()
 {
-    std::string buffer{"cmd arg -fF --long-flag=value \"DStr\" 'SStr' `PStr`"};
+    std::string buffer{"cmd arg -fF --long-flag=value \"DStr\" 'SStr' `PStr` $VAR"};
 
     const char* it = buffer.c_str();
     SHLParseState state{0};
