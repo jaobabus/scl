@@ -8,12 +8,16 @@ extern "C" {
 #endif
 
 
-void* get_args_buf(size_t size);
-void release_args_buf(void* ptr, size_t size);
+typedef struct
+{
+    void* (*alloc)(size_t size);
+    void (*release)(void* ptr, size_t);
+} SCLAllocator;
 
 SCLExecuteError scl_execute_inplace(const void* command,
                                     const SCLCommand* cmd,
                                     void** argument_opaque_table,
+                                    const SCLAllocator* alloc,
                                     char* cmdline, size_t size);
 
 

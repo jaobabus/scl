@@ -21,7 +21,7 @@ bool is_argument(uint8_t token)
 }
 
 static
-void* alloc_arguments_buffer(const SCLCommand* cmd)
+void* alloc_arguments_buffer(const SCLCommand* cmd, const SCLAllocator* alloc)
 {
     size_t size = 1;
     for (uint8_t i = 0; i < cmd->arg_count; i++)
@@ -30,7 +30,7 @@ void* alloc_arguments_buffer(const SCLCommand* cmd)
         if (sz > size)
             size = sz;
     }
-    void* buffer = get_args_buf(size);
+    void* buffer = alloc->alloc(size);
     for (uint8_t i = 0; i < cmd->arg_count; i++)
     {
         cmd->arguments[i].construct((char*)buffer + cmd->arguments[i].obj_offset);
@@ -39,7 +39,7 @@ void* alloc_arguments_buffer(const SCLCommand* cmd)
 }
 
 static
-void free_arguments_buffer(const SCLCommand* cmd, void* buffer)
+void free_arguments_buffer(const SCLCommand* cmd, const SCLAllocator* alloc, void* buffer)
 {
     size_t size = 1;
     for (uint8_t i = 0; i < cmd->arg_count; i++)
@@ -49,7 +49,7 @@ void free_arguments_buffer(const SCLCommand* cmd, void* buffer)
         if (sz > size)
             size = sz;
     }
-    release_args_buf(buffer, size);
+    alloc->release(buffer, size);
 }
 
 static
@@ -118,11 +118,12 @@ SCLExecuteError parse_arguments(SHLITokenInfo token,
 SCLExecuteError scl_execute_inplace(const void* opaque,
                                     const SCLCommand* cmd,
                                     void** argument_opaque_table,
+                                    const SCLAllocator* alloc,
                                     char* cmdline, size_t size)
 {
     SHLITokenInfo token = shli_parse_data(cmdline);
-    void* arguments = alloc_arguments_buffer(cmd);
+    void* arguments = alloc_arguments_buffer(cmd, alloc);
     SCLExecuteError error = parse_arguments(token, opaque, cmd, argument_opaque_table, arguments, cmdline, size);
-    free_arguments_buffer(cmd, arguments);
+    free_arguments_buffer(cmd, alloc, arguments);
     return error;
 }
