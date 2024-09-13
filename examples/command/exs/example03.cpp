@@ -18,13 +18,18 @@ int Example3::run()
 
     const char* it = buffer.c_str();
     SHLParseState state{0};
-    SHLInplaceContext ctx = shli_make_context(&buffer[0], SHLT_EOF);
+    SHLInplaceContext ctx = shli_make_context(&buffer[0], SHLT_None);
     while (shl_get_token(state) != SHLT_StateError
-           and shl_get_token(state) != SHLT_EOF)
+           and shl_get_token(state) != SHLT_Eof)
     {
         if (it == (buffer.c_str() + buffer.size() + 1))
-            throw std::runtime_error("Error: Parser reach out of bound");
+            break;
+//            throw std::runtime_error("Error: Parser reach out of bound");
         SHLParseResult res = shl_parse_next(state, *it);
+        {
+            auto s = (res.parsed ? std::string(1, res.parsed) : "\\0");
+            printf("'%s':\t%2d, %s\n", s.c_str(), res.state, shl_str_token(shl_get_token(res.state)));
+        }
         if (shl_get_token(res.state) != shl_get_token(state))
         {
             shli_end(&ctx);
@@ -39,9 +44,7 @@ int Example3::run()
     }
     shli_end(&ctx);
 
-    const char* marker_color = "\033[38;5;69m";
-    const char* size_color = "\033[38;5;210m";
-    for (auto& token : tokens)
+    auto print_token = [](auto& token)
     {
         SHLITokenInfo info = shli_parse_data(token);
         printf("%s%s: ",
@@ -50,23 +53,22 @@ int Example3::run()
         switch (info.data_type)
         {
         case SHLI_CVT_DTE_11:
-            printf("EOF\n");
-            break;
-
-        case SHLI_CVT_DTE_12:
             printf("%02hhx\n",
                    *(const uint8_t*)info.head);
             break;
+
+        case SHLI_CVT_DTE_12: {
+            printf("%02hhx ",
+                   *(const uint8_t*)info.head);
+            std::string buf{(const char*)info.data, (const char*)info.data + info.size};
+            printf("%s\n",
+                   buf.c_str());
+        }   break;
 
         case SHLI_CVT_DTE_21:
             printf("%02hhx %02hhx ",
                    ((const char*)info.head)[0],
                    ((const char*)info.head)[1]);
-
-        case SHLI_CVT_DTE_13:
-            if (info.data_type == SHLI_CVT_DTE_13)
-                printf("%02hhx ",
-                       ((const char*)info.head)[0]);
 
         case SHLI_CVT_DTE_3: {
             std::string buf{(const char*)info.data, (const char*)info.data + info.size};
@@ -74,6 +76,21 @@ int Example3::run()
                    buf.c_str());
         }   break;
         }
+    };
+
+    const char* marker_color = "\033[38;5;69m";
+    const char* size_color = "\033[38;5;210m";
+    for (auto& token : tokens)
+    {
+        print_token(token);
+    }
+
+    std::cout << "\n\n";
+    auto token = shli_parse_data(buffer.data());
+    while (token.token != SHLT_Eof)
+    {
+        print_token(token.head);
+        token = shli_next_token(token);
     }
 
     return 0;

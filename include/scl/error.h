@@ -2,12 +2,8 @@
 #define ERROR_H
 
 #include <stddef.h>
-#include <stdint.h>
 
-
-
-enum ESCLError
-{
+enum ESCLError {
     SCLE_NoError = 0,
 
     /** Memory limit reached
@@ -56,9 +52,13 @@ enum ESCLError
      */
     SCLE_CommandErrorsStart,
 
-    /** Command token must be SHLT_Argument
+    /** Command token must be SHLT_Word
      */
     SCLE_InvalidCommandToken = SCLE_CommandErrorsStart,
+
+    /** After '--flag=' expected common argument
+     */
+    SCLE_CommandNotFound,
 
     /** After '--flag=' expected common argument
      */
@@ -70,17 +70,13 @@ enum ESCLError
 
     /** User errors section
      */
-    SCLE_UserErrorsStart,
+    SCLE_UserErrorsStart = 64,
 
     /** User errors section end
      */
-    SCLE_UserErrorsEnd = 222,
-
-    // All other reserved
+    SCLE_UserErrorsEnd = 255,
 };
 
 typedef enum ESCLError SCLError;
-
-
 
 #endif // ERROR_H

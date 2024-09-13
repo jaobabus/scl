@@ -29,5 +29,4 @@ void covprintf(const char* fmt, ...);
 
 
 
-
 #endif // COPRINTF_HPP

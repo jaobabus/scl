@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include <algorithm>
 #include <memory>
+#include <vector>
 #include <string>
 #include <chrono>
 

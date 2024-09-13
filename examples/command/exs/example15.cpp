@@ -3,12 +3,12 @@
 #include <iostream>
 
 
+#include <scl/command.hpp>
+
 
 
 int Example15::run()
 {
-    std::cout << "Hello from example 1!" << std::endl;
-
     return 0;
 }
 

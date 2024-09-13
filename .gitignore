@@ -2,4 +2,7 @@
 build
 build/*
 CMakeLists.txt.user*
+ardgen/Ardgen.wpr
+ardgen/__pycache__
+ardgen/enums/__pycache__
 

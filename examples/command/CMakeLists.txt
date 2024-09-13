@@ -5,10 +5,11 @@ project(${PROJECT})
 
 set(CMAKE_CXX_STANDARD 17)
 
-find_package(Boost REQUIRED COMPONENTS program_options)
+find_package(Boost CONFIG REQUIRED COMPONENTS program_options)
 
 set(SOURCES
     allexamples.hpp
+    exs/arguments.hpp
     exs/baseexample.hpp
     exs/example01.hpp
     exs/example01.cpp
@@ -48,3 +49,5 @@ target_include_directories(${PROJECT} PUBLIC .)
 #target_link_options(${PROJECT} PUBLIC "-fsanitize=address" "-fsanitize=undefined")
 #target_link_libraries(${PROJECT} asan ubsan)
 target_link_libraries(${PROJECT} common Boost::program_options)
+
+add_subdirectory(exs/tests)

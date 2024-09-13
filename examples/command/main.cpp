@@ -1,4 +1,5 @@
 
+#include <chrono>
 #include <iostream>
 
 #include <textmap.hpp>
@@ -6,11 +7,9 @@
 
 #include <boost/lexical_cast.hpp>
 #include <boost/program_options.hpp>
+#include <thread>
 
 #include "allexamples.hpp"
-
-
-
 
 int main(int argc, const char** argv)
 {
@@ -57,5 +56,8 @@ int main(int argc, const char** argv)
     }
 
     auto& example = examples[example_index - 1];
-    return example->run();
+    int i = example->run();
+    fflush(stdout);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    return i;
 }

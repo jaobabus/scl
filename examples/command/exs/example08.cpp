@@ -8,6 +8,8 @@
 #include <tokencolors.h>
 #include <coprintf.hpp>
 
+#include "arguments.hpp"
+
 #include <termio.h>
 #include <iostream>
 #include <thread>
@@ -174,9 +176,8 @@ class ConsoleExecutor : public ConsoleBuffer
 public:
     struct CommandHandle
     {
-        const SCLCommand* descriptor;
-        void* opaque;
-        void** arguments_opaque_table;
+        const SCLCommandDescriptor* descriptor;
+        const char* name;
     };
 
 public:
@@ -193,7 +194,7 @@ public:
             next = shli_next_token(next);
         for (size_t i = 0; i < _size; i++)
         {
-            auto& hnd = _handlers[i];
+            auto& hnd = _handlers[i];/*
             if (hnd.descriptor->is_command(hnd.opaque, (const char*)first.data, first.size))
             {
                 auto sz = size - ((char*)next.data - buffer);
@@ -203,7 +204,7 @@ public:
                     printf("Error %d in %d\n", (int)err.error, (int)err.token);
                 }
                 return;
-            }
+            }*/
         }
         std::string name{(char*)first.data, (char*)first.data + first.size};
         printf("Error: command '%s' not found\n", name.c_str());
@@ -212,56 +213,30 @@ public:
 private:
     CommandHandle* _handlers;
     size_t _size;
-
-};
-
-template<typename Command>
-ConsoleExecutor::CommandHandle default_handle(Command* cmd, void** args_opaque_table)
-{
-    return ConsoleExecutor::CommandHandle
-    {
-        &Command::sc_descriptor,
-        cmd,
-        args_opaque_table
-    };
-}
-
-
-constexpr SCLError StringArgErrorToken = SCLE_UserErrorsStart;
-
-
-class StringArg : public TypedArgument<StringView>
-{
-public:
-    SCLError parse(type& value, SHLITokenInfo token) const noexcept override
-    {
-        value = StringView{(const char*)token.data, token.size};
-        return SCLE_NoError;
-    }
-
 };
 
 
-class EchoCommand : public TypedCommand<StringArg>
+
+class EchoCommand : public TypedCommand<EchoCommand, StringArg>
 {
 public:
-    EchoCommand()
-        : TypedCommand<StringArg>("echo") {}
-
-public:
-    SCLError execute(const StringView& sw) const noexcept override
+    static const uint8_t execute(const StringView& sw) noexcept
     {
         fwrite(sw.data(), sw.size(), 1, stdout);
         fwrite("\n", 1, 1, stdout);
         return SCLE_NoError;
     }
+
+    constexpr static const void** sc_opaques = nullptr;
+    constexpr static SCLCommandDescriptorWithName<5> sc_descriptor{sc_descriptor_base, {"echo"}};
 };
-
-
-
 }
 
-
+template<typename Command>
+constexpr ConsoleExecutor::CommandHandle default_handle(const char* name)
+{
+    return ConsoleExecutor::CommandHandle{&Command::sc_descriptor.base, name};
+}
 
 int Example8::run()
 {
@@ -270,10 +245,7 @@ int Example8::run()
     tios.c_lflag &= ~ECHO & ~ICANON;
     tcsetattr(fileno(stdin), 0, &tios);
     void* opaques[] = { new StringArg{} };
-    ConsoleExecutor::CommandHandle handlers[] =
-    {
-        default_handle<EchoCommand>(new EchoCommand(), opaques)
-    };
+    ConsoleExecutor::CommandHandle handlers[] = {default_handle<EchoCommand>("echo")};
     ConsoleExecutor buffer(handlers, sizeof(handlers) / sizeof(handlers[0]));
     while (true)
     {

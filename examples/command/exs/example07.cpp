@@ -8,6 +8,8 @@
 #include <tokencolors.h>
 #include <coprintf.hpp>
 
+#include "arguments.hpp"
+
 #include <termio.h>
 #include <iostream>
 #include <thread>
@@ -150,7 +152,7 @@ class ConsoleExecutor : public ConsoleBuffer
 public:
     struct CommandHandle
     {
-        const SCLCommand* descriptor;
+        const SCLCommandDescriptor* descriptor;
         void* opaque;
         void** arguments_opaque_table;
     };
@@ -170,7 +172,7 @@ public:
         while (next.token == SHLT_Whitespace)
             next = shli_next_token(next);
         for (auto& hnd : _handlers)
-        {
+        {/*
             if (hnd.descriptor->is_command(hnd.opaque, (const char*)first.data, first.size))
             {
                 auto sz = size - ((char*)next.data - buffer);
@@ -180,7 +182,7 @@ public:
                     printf("Error %d in %d\n", (int)err.error, (int)err.token);
                 }
                 return;
-            }
+            }*/
         }
         std::string name{(char*)first.data, (char*)first.data + first.size};
         printf("Error: command '%s' not found\n", name.c_str());
@@ -203,29 +205,10 @@ ConsoleExecutor::CommandHandle default_handle(Command* cmd, void** args_opaque_t
 }
 
 
-constexpr SCLError StringArgErrorToken = SCLE_UserErrorsStart;
-
-
-class StringArg : public TypedArgument<StringView>
+class EchoCommand : public TypedCommand<EchoCommand, StringArg>
 {
 public:
-    SCLError parse(type& value, SHLITokenInfo token) const noexcept override
-    {
-        value = StringView{(const char*)token.data, token.size};
-        return SCLE_NoError;
-    }
-
-};
-
-
-class EchoCommand : public TypedCommand<StringArg>
-{
-public:
-    EchoCommand()
-        : TypedCommand<StringArg>("echo") {}
-
-public:
-    SCLError execute(const StringView& sw) const noexcept override
+    SCLError execute(const StringView& sw) const noexcept
     {
         fwrite(sw.data(), sw.size(), 1, stdout);
         fwrite("\n", 1, 1, stdout);
@@ -242,7 +225,7 @@ int Example7::run()
     tcsetattr(fileno(stdin), 0, &tios);
     ConsoleExecutor buffer;
     void* opaques[] = { new StringArg{} };
-    buffer.register_command(default_handle<EchoCommand>(new EchoCommand(), opaques));
+    // buffer.register_command(default_handle<EchoCommand>(new EchoCommand(), opaques));
     while (true)
     {
         int ch = getchar();

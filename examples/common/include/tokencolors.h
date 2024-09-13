@@ -14,7 +14,7 @@ static const char* shlt_variable   = "\033[38;5;198m";
 static const char* shlt_stringsq   = "\033[38;5;208m";
 static const char* shlt_stringdq   = "\033[38;5;208m";
 static const char* shlt_subprogram = "\033[38;5;214m";
-static const char* shlt_argument   = "\033[38;5;253m";
+static const char* shlt_word   = "\033[38;5;253m";
 
 
 static inline
@@ -24,21 +24,19 @@ const char* shlt_get_color(SHLToken token)
     {
     case SHLT_None:
         return shlt_none;
-    case SHLT_EOF:
+    case SHLT_Eof:
         return shlt_eof;
     case SHLT_Whitespace:
         return shlt_whitespace;
-    case SHLT_Argument:
-        return shlt_argument;
-    case SHLT_StringDQ:
+    case SHLT_Word:
+        return shlt_word;
+    case SHLT_String:
         return shlt_stringsq;
-    case SHLT_StringSQ:
-        return shlt_stringdq;
     case SHLT_SubProgram:
         return shlt_subprogram;
     case SHLT_Flag:
         return shlt_flag;
-    case SHLT_LongFlag:
+    case SHLT_FlagEqual:
         return shlt_longflag;
     case SHLT_Variable:
         return shlt_variable;

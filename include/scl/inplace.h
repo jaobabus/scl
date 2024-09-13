@@ -7,9 +7,6 @@
 extern "C" {
 #endif
 
-
-
-
 typedef struct {
     void* head;
     void* data;
