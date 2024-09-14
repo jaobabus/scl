@@ -2,6 +2,7 @@
 
 #include <iostream>
 
+#include <scl/utils.hpp>
 
 #include <scl/command.hpp>
 

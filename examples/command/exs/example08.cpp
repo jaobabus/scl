@@ -189,9 +189,10 @@ public:
     {
         shli_parse_inplace(buffer, size);
         auto first = shli_parse_data(buffer);
-        auto next = shli_next_token(first);
+        auto next = first;
+        shli_next_token(&next);
         while (next.token == SHLT_Whitespace)
-            next = shli_next_token(next);
+            shli_next_token(&next);
         for (size_t i = 0; i < _size; i++)
         {
             auto& hnd = _handlers[i];/*

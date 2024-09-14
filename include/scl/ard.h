@@ -20,7 +20,7 @@ extern "C" {
  *    0[0] bit is hia (Has Id After)
  *    0[1] byte is ascii7 key
  *
- *    if not key is EOF
+ *    if key == 0 is EOF
  *
  *  2: has if hia
  *    0[0] byte is id after command
@@ -28,8 +28,6 @@ extern "C" {
  */
 
 #define ARD_EOF 0
-#define ARD_EOT 0x80
-#define ARD_HIA_MASK 0x80
 #define ARD_HIA 0x80
 #define ARD_KEY_MASK 0x7F
 
@@ -46,7 +44,11 @@ typedef struct {
 } ARDMiniRule;
 
 
-
+/** @brief ard_find_rule
+ * @param  data Rule map that ends with key = 0, otherwise UB
+ * @param  key  Key for searching on the map
+ * @return The value that corresponds to the key if there is one, otherwise the first pair where key = 0
+ */
 ARDRule ard_find_rule(const uint8_t* data, uint8_t key);
 
 

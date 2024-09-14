@@ -60,7 +60,7 @@ SCLExecuteError parse_arguments(const SCLCommandDescriptor* cmd,
     {
         while (token.token == SHLT_Whitespace)
         {
-            token = shli_next_token(token);
+            shli_next_token(&token);
             token_index++;
         }
         if (token.token == SHLT_Flag)
@@ -73,7 +73,7 @@ SCLExecuteError parse_arguments(const SCLCommandDescriptor* cmd,
                 return error;
             }
             flags_buffer[flags_top++] = (char*)token.head - cmdline;
-            SHLITokenInfo next = shli_next_token(token);
+            // shli_next_token(token);
         }
         else if (is_argument(token.token))
         {
@@ -95,8 +95,15 @@ SCLExecuteError parse_arguments(const SCLCommandDescriptor* cmd,
             error.error = SCLE_NotImplemented;
             return error;
         }
-        token = shli_next_token(token);
+        shli_next_token(&token);
         token_index++;
+    }
+    if (arg_index < cmd->arg_count)
+    {
+        SCLExecuteError error;
+        error.token = token_index;
+        error.error = SCLE_FewArguments;
+        return error;
     }
     return cmd->execute(arguments, flags_buffer, flags_top);
 }
@@ -128,10 +135,11 @@ SCLExecuteError SCL_EXPORT_API_AFTER_TYPE
 {
     shli_parse_inplace(cmdline, size);
     SHLITokenInfo name = shli_parse_data(cmdline);
-    SHLITokenInfo token = shli_next_token(name);
+    SHLITokenInfo token = name;
+    shli_next_token(&token);
     SCLExecuteError err = {SCLE_CommandNotFound, 0};
     while (token.token == SHLT_Whitespace)
-        token = shli_next_token(token);
+        shli_next_token(&token);
     for (size_t i = 0; i < count; ++i)
     {
         const char* cmd_name = (const char*)(cmd[i] + 1);

@@ -168,9 +168,10 @@ public:
     {
         shli_parse_inplace(buffer, size);
         auto first = shli_parse_data(buffer);
-        auto next = shli_next_token(first);
+        auto next = first;
+        shli_next_token(&next);
         while (next.token == SHLT_Whitespace)
-            next = shli_next_token(next);
+            shli_next_token(&next);
         for (auto& hnd : _handlers)
         {/*
             if (hnd.descriptor->is_command(hnd.opaque, (const char*)first.data, first.size))

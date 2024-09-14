@@ -178,9 +178,9 @@ SHLITokenInfo SCL_EXPORT_API_AFTER_TYPE shli_parse_data(void* phead)
 }
 
 SCL_EXPORT_API_BEFORE_TYPE
-SHLITokenInfo SCL_EXPORT_API_AFTER_TYPE shli_next_token(SHLITokenInfo prev)
+void SCL_EXPORT_API_AFTER_TYPE shli_next_token(SHLITokenInfo* prev)
 {
-    return shli_parse_data((char*)prev.data + prev.size);
+    *prev = shli_parse_data((char*)prev->data + prev->size);
 }
 
 SCL_EXPORT_API_BEFORE_TYPE
@@ -204,12 +204,10 @@ void SCL_EXPORT_API_AFTER_TYPE shli_parse_inplace(void* buffer, size_t size)
 }
 
 SCL_EXPORT_API_BEFORE_TYPE
-SHLInplaceContext SCL_EXPORT_API_AFTER_TYPE shli_continue(SHLITokenInfo token)
+void SCL_EXPORT_API_AFTER_TYPE shli_continue(SHLInplaceContext* ctx, SHLITokenInfo token)
 {
-    SHLInplaceContext ctx;
-    ctx.head = token.head;
-    ctx.current = (char*)token.data + token.size;
-    ctx.flags = (cvt_table_wi[token.data_type] & (SCL_PRIVATE_FLAG_HAS_DATA | SCL_PRIVATE_FLAG_SWAP_TEMP))
+    ctx->head = token.head;
+    ctx->current = (char*)token.data + token.size;
+    ctx->flags = (cvt_table_wi[token.data_type] & (SCL_PRIVATE_FLAG_HAS_DATA | SCL_PRIVATE_FLAG_SWAP_TEMP))
                 | (token.token == SHLT_StateError ? SCL_PRIVATE_FLAG_STATE_ERR : 0);
-    return ctx;
 }

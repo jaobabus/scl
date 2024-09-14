@@ -10,6 +10,7 @@
 extern "C" {
 #endif
 
+
 /** Inplace format v2.0
  *
  * data type 1.1:
@@ -106,7 +107,14 @@ typedef enum {
 
 } SHLToken;
 
-const char* shl_str_token(SHLToken type);
+
+/** shl_str_token
+ *
+ *  @param token Token
+ *  @return Name of token
+ */
+const char* shl_str_token(SHLToken token);
+
 
 #ifdef __cplusplus
 }

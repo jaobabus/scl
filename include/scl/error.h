@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 
+
 enum ESCLError {
     SCLE_NoError = 0,
 
@@ -56,9 +57,13 @@ enum ESCLError {
      */
     SCLE_InvalidCommandToken = SCLE_CommandErrorsStart,
 
-    /** After '--flag=' expected common argument
+    /** Command with name not registered
      */
     SCLE_CommandNotFound,
+
+    /** Few arguments
+     */
+    SCLE_FewArguments,
 
     /** After '--flag=' expected common argument
      */
@@ -77,6 +82,8 @@ enum ESCLError {
     SCLE_UserErrorsEnd = 255,
 };
 
+
 typedef enum ESCLError SCLError;
+
 
 #endif // ERROR_H

@@ -90,7 +90,7 @@ int Example3::run()
     while (token.token != SHLT_Eof)
     {
         print_token(token.head);
-        token = shli_next_token(token);
+        shli_next_token(&token);
     }
 
     return 0;

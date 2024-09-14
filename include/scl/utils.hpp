@@ -7,6 +7,9 @@
 
 #ifdef __cplusplus
 
+
+/// StringView
+/// c++11 minimal port std::string_view
 struct StringView
 {
     const char* _data;

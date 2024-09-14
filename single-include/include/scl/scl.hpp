@@ -25,7 +25,7 @@ extern "C" {
  *    0[0] bit is hia (Has Id After)
  *    0[1] byte is ascii7 key
  *
- *    if not key is EOF
+ *    if key == 0 is EOF
  *
  *  2: has if hia
  *    0[0] byte is id after command
@@ -33,8 +33,6 @@ extern "C" {
  */
 
 #define ARD_EOF 0
-#define ARD_EOT 0x80
-#define ARD_HIA_MASK 0x80
 #define ARD_HIA 0x80
 #define ARD_KEY_MASK 0x7F
 
@@ -51,7 +49,11 @@ typedef struct {
 } ARDMiniRule;
 
 
-
+/** @brief ard_find_rule
+ * @param  data Rule map that ends with key = 0, otherwise UB
+ * @param  key  Key for searching on the map
+ * @return The value that corresponds to the key if there is one, otherwise the first pair where key = 0
+ */
 ARDRule ard_find_rule(const uint8_t* data, uint8_t key);
 
 
@@ -85,7 +87,7 @@ ARDRule SCL_EXPORT_API_AFTER_TYPE ard_find_rule(const uint8_t* data, uint8_t key
         uint8_t hkey = head & ARD_KEY_MASK;
         rule.value = data[1];
         rule.id_after = 0;
-        if (head & ARD_HIA_MASK)
+        if (head & ARD_HIA)
             rule.id_after = (++data)[1];
         if (hkey == key || hkey == 0)
             break;
@@ -157,9 +159,13 @@ enum ESCLError {
      */
     SCLE_InvalidCommandToken = SCLE_CommandErrorsStart,
 
-    /** After '--flag=' expected common argument
+    /** Command with name not registered
      */
     SCLE_CommandNotFound,
+
+    /** Few arguments
+     */
+    SCLE_FewArguments,
 
     /** After '--flag=' expected common argument
      */
@@ -568,41 +574,6 @@ const uint8_t rules[] = {
 // -- ARD-Table --
 
 
-SCL_STATIC_API_BEFORE_TYPE
-const char* parse_value(uint8_t s)
-{
-    static char buffer[1024];
-    size_t size = 0;
-    uint8_t d = s & 0xC0;
-    size += snprintf(buffer + size, 1024 - size, "%s",
-                    &"NoStore\0Store8\0\0Store3\0\0Store4\0"[(d >> 6) * 8]);
-    if (s & SCL_PRIVATE_Return)
-        size += sprintf(buffer + size, ", Return");
-    if (s & SCL_PRIVATE_Token(0))
-        size += sprintf(buffer + size, ", token=%s",
-                        shl_str_token(shl_get_token(s << 2)));
-    else if (s & SCL_PRIVATE_State(0, 0)) {
-        size += sprintf(buffer + size, ", state=%d",
-                        s & 0x3);
-        if (s & 0x40)
-        size += sprintf(buffer + size, ", switch");
-    }
-    return buffer;
-}
-
-SCL_STATIC_API_BEFORE_TYPE
-const char* parse_state(uint8_t s)
-{
-    static char buffer[1024];
-    size_t size = 0;
-    size += snprintf(buffer + size, 1024 - size, "%s",
-                    &"NoEscape\0\0StartEsc\0\0HexEscape\0OctEscape\0"[(s >> 6) * 10]);
-    size += sprintf(buffer + size, ", token=%s",
-                    shl_str_token(shl_get_token(s)));
-    size += sprintf(buffer + size, ", state=%d",
-                    s & 0x3);
-    return buffer;
-}
 
 SCL_STATIC_API_BEFORE_TYPE
 uint8_t parse_next(SHLParseResult* res, uint8_t key)
@@ -661,7 +632,12 @@ uint8_t parse_next(SHLParseResult* res, uint8_t key)
         res->parsed = key - '0';
         break;
     case SCL_PRIVATE_Store4 >> 6:
-        res->parsed = key - '0';
+        if (key >= '0' and key <= '9')
+            res->parsed = key - '0';
+        else if (key >= 'a' and key <= 'f')
+            res->parsed = key - 'a' + 0xa;
+        else if (key >= 'A' and key <= 'F')
+            res->parsed = key - 'A' + 0xA;
         break;
     }
     return (rule.value & SCL_PRIVATE_Return);
@@ -721,12 +697,12 @@ void shli_end(SHLInplaceContext* ctx);
 // Reading
 uint8_t shli_get_header_size(uint8_t data_type);
 SHLITokenInfo shli_parse_data(void* head);
-SHLITokenInfo shli_next_token(SHLITokenInfo prev);
+void shli_next_token(SHLITokenInfo* prev);
 
 
 // Using
 void shli_parse_inplace(void* buffer, size_t size);
-SHLInplaceContext shli_continue(SHLITokenInfo token);
+void shli_continue(SHLInplaceContext* ctx, SHLITokenInfo token);
 
 
 
@@ -913,9 +889,9 @@ SHLITokenInfo SCL_EXPORT_API_AFTER_TYPE shli_parse_data(void* phead)
 }
 
 SCL_EXPORT_API_BEFORE_TYPE
-SHLITokenInfo SCL_EXPORT_API_AFTER_TYPE shli_next_token(SHLITokenInfo prev)
+void SCL_EXPORT_API_AFTER_TYPE shli_next_token(SHLITokenInfo* prev)
 {
-    return shli_parse_data((char*)prev.data + prev.size);
+    *prev = shli_parse_data((char*)prev->data + prev->size);
 }
 
 SCL_EXPORT_API_BEFORE_TYPE
@@ -939,14 +915,12 @@ void SCL_EXPORT_API_AFTER_TYPE shli_parse_inplace(void* buffer, size_t size)
 }
 
 SCL_EXPORT_API_BEFORE_TYPE
-SHLInplaceContext SCL_EXPORT_API_AFTER_TYPE shli_continue(SHLITokenInfo token)
+void SCL_EXPORT_API_AFTER_TYPE shli_continue(SHLInplaceContext* ctx, SHLITokenInfo token)
 {
-    SHLInplaceContext ctx;
-    ctx.head = token.head;
-    ctx.current = (char*)token.data + token.size;
-    ctx.flags = (cvt_table_wi[token.data_type] & (SCL_PRIVATE_FLAG_HAS_DATA | SCL_PRIVATE_FLAG_SWAP_TEMP))
+    ctx->head = token.head;
+    ctx->current = (char*)token.data + token.size;
+    ctx->flags = (cvt_table_wi[token.data_type] & (SCL_PRIVATE_FLAG_HAS_DATA | SCL_PRIVATE_FLAG_SWAP_TEMP))
                 | (token.token == SHLT_StateError ? SCL_PRIVATE_FLAG_STATE_ERR : 0);
-    return ctx;
 }
 
 #define EXECUTOR_H 
@@ -962,15 +936,61 @@ SHLInplaceContext SCL_EXPORT_API_AFTER_TYPE shli_continue(SHLITokenInfo token)
 extern "C" {
 
 
+
+/** SCLArgumentDescriptor
+ *
+ *  Information for constructing and paring arguments
+ */
 typedef struct
 {
-    void (*destruct)(void* obj); // Constructor must be called in parse()
+    /** destruct
+     *
+     *  @param obj Pointer to object data
+     *
+     *  @note Constructor must be called in parse()
+     */
+    void (*destruct)(void* obj);
+
+    /** Parse
+     *
+     *  @param  opaque Opaque @see SCLCommandDescriptor::arguments_opaques
+     *  @param  obj    Raw pointer to an object, must be constructed
+     *  @param  token  Token for parsing
+     *  @return SCLError
+     */
     uint8_t (*parse)(const void* opaque, void* obj, SHLITokenInfo token);
+
+    /** completes
+     *
+     *  @param  opaque      Opaque @see SCLCommandDescriptor::arguments_opaques
+     *  @param  buffer      Buffer to completes where must be placed and separated by '\n'
+     *  @param  buffer_size Completes buffer size
+     *  @param  token       Text to be completed
+     *  @param  size        Size of token
+     *  @return Completes size
+     */
     size_t (*completes)(
         const void* opaque, char* buffer, size_t buffer_size, const char* token, size_t size);
+
+    /** obj_size
+     *
+     *  Size of argument type object
+     */
     uint16_t obj_size;
+
+    /** obj_offset
+     *
+     *  Will be moved to SCLCommandDescriptor
+     */
     uint16_t obj_offset;
+
+    /** padding
+     *
+     *  Padding to 8 bytes
+     */
+    //uint16_t padding[1 + (sizeof(void*) == 8 ? 2 : 0)];
 } SCLArgumentDescriptor;
+
 
 
 }
@@ -1099,7 +1119,7 @@ SCLExecuteError parse_arguments(const SCLCommandDescriptor* cmd,
     {
         while (token.token == SHLT_Whitespace)
         {
-            token = shli_next_token(token);
+            shli_next_token(&token);
             token_index++;
         }
         if (token.token == SHLT_Flag)
@@ -1112,7 +1132,7 @@ SCLExecuteError parse_arguments(const SCLCommandDescriptor* cmd,
                 return error;
             }
             flags_buffer[flags_top++] = (char*)token.head - cmdline;
-            SHLITokenInfo next = shli_next_token(token);
+            // shli_next_token(token);
         }
         else if (is_argument(token.token))
         {
@@ -1134,8 +1154,15 @@ SCLExecuteError parse_arguments(const SCLCommandDescriptor* cmd,
             error.error = SCLE_NotImplemented;
             return error;
         }
-        token = shli_next_token(token);
+        shli_next_token(&token);
         token_index++;
+    }
+    if (arg_index < cmd->arg_count)
+    {
+        SCLExecuteError error;
+        error.token = token_index;
+        error.error = SCLE_FewArguments;
+        return error;
     }
     return cmd->execute(arguments, flags_buffer, flags_top);
 }
@@ -1167,10 +1194,11 @@ SCLExecuteError SCL_EXPORT_API_AFTER_TYPE
 {
     shli_parse_inplace(cmdline, size);
     SHLITokenInfo name = shli_parse_data(cmdline);
-    SHLITokenInfo token = shli_next_token(name);
+    SHLITokenInfo token = name;
+    shli_next_token(&token);
     SCLExecuteError err = {SCLE_CommandNotFound, 0};
     while (token.token == SHLT_Whitespace)
-        token = shli_next_token(token);
+        shli_next_token(&token);
     for (size_t i = 0; i < count; ++i)
     {
         const char* cmd_name = (const char*)(cmd[i] + 1);
@@ -1999,7 +2027,7 @@ struct ArgsCommandWrapper<Derrived, R (*)(Args...)> {
 };
 
 
-#define SCLC_DeclareCommand(name,args...) void SHL_CONCAT(SCLC_MAKE_NAME(name), _dummy_args)(args); struct SHL_CONCAT(SCLC_MAKE_NAME(name), _type) : ArgsCommandWrapper<SHL_CONCAT(SCLC_MAKE_NAME(name), _type), decltype(&SHL_CONCAT(SCLC_MAKE_NAME(name), _dummy_args))> { struct Body { uint8_t execute(); SHL_JOIN(;, args); }; static inline SCLExecuteError sc_execute(void* obj_buffer, const uint16_t* flags, size_t size) { return {reinterpret_cast<Body*>(obj_buffer)->execute(), 0}; } static constexpr SCLCommandDescriptorWithName<sizeof(#name)> sc_descriptor{sc_descriptor_base, {#name}}; } SCLC_MAKE_NAME(name); uint8_t SHL_CONCAT(SCLC_MAKE_NAME(name), _type)::Body::execute()
+#define SCLC_DeclareCommand(name,args...) static void SHL_CONCAT(SCLC_MAKE_NAME(name), _dummy_args)(args); struct SHL_CONCAT(SCLC_MAKE_NAME(name), _type) : ArgsCommandWrapper<SHL_CONCAT(SCLC_MAKE_NAME(name), _type), decltype(&SHL_CONCAT(SCLC_MAKE_NAME(name), _dummy_args))> { struct Body { uint8_t execute(); SHL_JOIN(;, args); }; static inline SCLExecuteError sc_execute(void* obj_buffer, const uint16_t* flags, size_t size) { return {reinterpret_cast<Body*>(obj_buffer)->execute(), 0}; } static constexpr SCLCommandDescriptorWithName<sizeof(#name)> sc_descriptor{sc_descriptor_base, {#name}}; } SCLC_MAKE_NAME(name); uint8_t SHL_CONCAT(SCLC_MAKE_NAME(name), _type)::Body::execute()
 
 
 

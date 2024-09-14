@@ -10,6 +10,7 @@
 #define SCLA_MAKE_NAME(name) SHL_CONCAT(argument_, name)
 #endif
 
+
 template<typename T>
 class DefaultArgument
 {

@@ -218,6 +218,8 @@ const uint8_t rules[] = {
 // -- ARD-Table --
 
 
+#if TRACE_VIA_PRINTF(1) + 0
+
 SCL_STATIC_API_BEFORE_TYPE
 const char* parse_value(uint8_t s)
 {
@@ -253,6 +255,8 @@ const char* parse_state(uint8_t s)
                     s & 0x3);
     return buffer;
 }
+
+#endif
 
 SCL_STATIC_API_BEFORE_TYPE
 uint8_t parse_next(SHLParseResult* res, uint8_t key)
@@ -311,7 +315,12 @@ uint8_t parse_next(SHLParseResult* res, uint8_t key)
         res->parsed = key - '0';
         break;
     case SCL_PRIVATE_Store4 >> 6:
-        res->parsed = key - '0';
+        if (key >= '0' and key <= '9')
+            res->parsed = key - '0';
+        else if (key >= 'a' and key <= 'f')
+            res->parsed = key - 'a' + 0xa;
+        else if (key >= 'A' and key <= 'F')
+            res->parsed = key - 'A' + 0xA;
         break;
     }
     return (rule.value & SCL_PRIVATE_Return);

@@ -122,7 +122,7 @@ struct ArgsCommandWrapper<Derrived, R (*)(Args...)> {
 
 
 #define SCLC_DeclareCommand(name, args...) \
-    void SHL_CONCAT(SCLC_MAKE_NAME(name), _dummy_args)(args); \
+    static void SHL_CONCAT(SCLC_MAKE_NAME(name), _dummy_args)(args); \
     struct SHL_CONCAT(SCLC_MAKE_NAME(name), _type) \
             : ArgsCommandWrapper<SHL_CONCAT(SCLC_MAKE_NAME(name), _type), \
                                  decltype(&SHL_CONCAT(SCLC_MAKE_NAME(name), _dummy_args))> { \
