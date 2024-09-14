@@ -17,6 +17,9 @@
 
 ```c++
 
+#include <scl/scl.hpp>
+
+
 SCLC_DeclareCommand(echo, StringView sv) {
 	fwrite(sv.data(), sv.size(), 1, stdout);
 	fwrite("\n", 1, 1, stdout);
