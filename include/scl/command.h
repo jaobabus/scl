@@ -48,9 +48,15 @@ typedef struct
 
     /** arguments_opaques
      *
-     *  Tsble to arguments opaques
+     *  Table to arguments opaques
      */
     const void* const* arguments_opaques;
+
+    /** arguments_offsets
+     *
+     *  Tsble to arguments offsets in body
+     */
+    const uint16_t* arguments_offsets;
 
     /** arg_count
      */
@@ -84,7 +90,7 @@ struct SCLCommandDescriptorWithName
     char name_continue[name_size];
 };
 
-static_assert(sizeof(SCLCommandDescriptorWithName<8>) - sizeof(void*) * 3 - 8 == 8, "Align error");
+static_assert(sizeof(SCLCommandDescriptorWithName<8>) - sizeof(SCLCommandDescriptor) == 8, "Align error");
 
 #endif
 

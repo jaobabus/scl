@@ -1,6 +1,7 @@
 #ifndef SCL_ARGUMENT_HPP
 #define SCL_ARGUMENT_HPP
 
+#include "argument.h"
 #include "inplace.h"
 #include "utils.hpp"
 
@@ -9,6 +10,13 @@
 #ifndef SCLA_MAKE_NAME
 #define SCLA_MAKE_NAME(name) SHL_CONCAT(argument_, name)
 #endif
+
+
+template<typename T>
+void destruct_object(void* ptr)
+{
+    static_cast<T*>(ptr)->~T();
+}
 
 
 template<typename T>
@@ -36,6 +44,14 @@ public:
     {
         return static_cast<const Derrived*>(th)->completes(buffer, buffer_size, token, size);
     }
+
+public:
+    static constexpr SCLArgumentDescriptor sc_descriptor{&destruct_object<Type>,
+                                                         &sc_parse,
+                                                         &sc_completes,
+                                                         (uint16_t)sizeof(Type),
+                                                         0};
+
 };
 
 
@@ -50,23 +66,6 @@ using SCLArgumentByTypeT = typename SCLArgumentByType<T>::type;
     struct SCLArgumentByType<Type> { \
         using type = Argument; \
     }
-
-
-template<typename D, typename T>
-class SCLArgumentWrapper;
-
-
-template<typename Derrived, typename R, typename Arg>
-struct SCLArgumentWrapper<Derrived, R (*)(Arg)>
-{
-public:
-    using type = Arg;
-
-public:
-    static size_t sc_completes(const void* th, char* buffer, size_t buffer_size, const char* token, size_t size) noexcept { return 0; }
-
-};
-
 
 #endif
 

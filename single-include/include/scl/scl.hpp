@@ -106,6 +106,7 @@ ARDRule SCL_EXPORT_API_AFTER_TYPE ard_find_rule(const uint8_t* data, uint8_t key
 
 #include <stddef.h>
 
+
 enum ESCLError {
     SCLE_NoError = 0,
 
@@ -184,11 +185,14 @@ enum ESCLError {
     SCLE_UserErrorsEnd = 255,
 };
 
+
 typedef enum ESCLError SCLError;
 
 
 
+
 extern "C" {
+
 
 
 /** Inplace format v2.0
@@ -287,7 +291,14 @@ typedef enum {
 
 } SHLToken;
 
-const char* shl_str_token(SHLToken type);
+
+/** shl_str_token
+ *
+ *  @param token Token
+ *  @return Name of token
+ */
+const char* shl_str_token(SHLToken token);
+
 
 
 }
@@ -340,17 +351,44 @@ const char* SCL_EXPORT_API_AFTER_TYPE shl_str_token(SHLToken type)
 extern "C" {
 
 
-// [token: bit[4]] [state: bit[4]]
+
+/** SHLParseState
+ *
+ *  format: [escape: bit[2]] [token: bit[4]] [state: bit[2]]
+ *
+ *  @param escape @see SHLToken::SHLT_EscapeStart
+ *  @param token  @see SHLToken
+ *  @param state  Variant of token, see rules in parse.c
+ */
 typedef uint8_t SHLParseState;
 
+
+/** SHLParseResult
+ */
 typedef struct
 {
+    /// State for this char
     SHLParseState state;
+
+    /// Parsed char or '\0'
     uint8_t parsed;
 } SHLParseResult;
 
+
+/// shl_get_token
+/// extract token from SHLParseState
 SHLToken shl_get_token(SHLParseState state);
+
+/** shl_parse_next
+ *
+ *  Select new lexem from SHLToken
+ *
+ *  @param prev_state Previous state of 0
+ *  @param next       Next char
+ *  @return next state and parsed char
+ */
 SHLParseResult shl_parse_next(SHLParseState prev_state, char next);
+
 
 
 }
@@ -664,51 +702,156 @@ SHLParseResult SCL_EXPORT_API_AFTER_TYPE shl_parse_next(SHLParseState prev_state
 
 #define SHLINPLACE_H 
 
+#include <stddef.h>
 
 
 
 extern "C" {
 
 
+
+/** SHLITokenInfo
+ *
+ *  Inplace packed token info
+ */
 typedef struct {
+    /// head
+    /// Pointer to token head
     void* head;
+
+    /// data
+    /// Pointer to token data
     void* data;
+
+    /// token
+    /// @see SHLToken
     uint8_t token;
+
+    /// data_type
+    /// One of SHLI_CVT_DTE_*
     uint8_t data_type;
+
+    /// size
+    /// Size of token data
     uint16_t size;
 } SHLITokenInfo;
 
 
+/** SHLInplaceContext
+ *
+ *  Inplace pack token context
+ */
 typedef struct {
+    /// head
+    /// Pointer to last token head
     void* head;
+
+    /// current
+    /// Pointer to current byte
     void* current;
+
+    /// flags
+    /// Combination of SCL_PRIVATE_FLAG_*
     uint8_t flags;
+
+    /// temp
+    /// Field for support types with 2 byte head
     char temp;
 } SHLInplaceContext;
 
 
-// Writing
+// ------------------------ Writing ------------------------
+
+/** shli_make_context
+ *
+ *  @param buffer Pointer to buffer where will be inplaced token
+ *  @param token  @see SHLToken
+ *  @return Valid context
+ */
 SHLInplaceContext shli_make_context(void* buffer, uint8_t token);
+
+
+/** shli_reuse_context
+ *
+ *  @param ctx   Pointer to context
+ *  @param token @see SHLToken
+ */
 void shli_reuse_context(SHLInplaceContext* ctx, uint8_t token);
+
+
+/** shli_next
+ *
+ *  @param ctx Pointer to context
+ *  @param chr next char to inplaced to token
+ */
 void shli_next(SHLInplaceContext* ctx, uint8_t chr);
+
+
+/** shli_end
+ *
+ * Complete token
+ *
+ * @param ctx Pointer to context
+ */
 void shli_end(SHLInplaceContext* ctx);
 
+// ------------------------ ------- ------------------------
 
-// Reading
+
+// ------------------------ Reading ------------------------
+
+/** shli_get_header_size
+ *
+ *  @param data_type SHLI_CVT_DTE_*
+ *  @return header size
+ */
 uint8_t shli_get_header_size(uint8_t data_type);
+
+
+/** shli_parse_data
+ *
+ *  @param head Pointer to token
+ *  @return Parsed info
+ */
 SHLITokenInfo shli_parse_data(void* head);
+
+
+/** shli_next_token
+ *
+ *  Skip current and place next token
+ *
+ * @param prev Previous token
+ */
 void shli_next_token(SHLITokenInfo* prev);
 
+// ------------------------ ------- ------------------------
 
-// Using
+
+// ------------------------- Using -------------------------
+
+/** shli_parse_inplace
+ *
+ *  Parse inplace command line
+ *
+ *  @param buffer command line buffer
+ *  @param size   sizeof of buffer
+ */
 void shli_parse_inplace(void* buffer, size_t size);
+
+/** shli_continue
+ *
+ *  ???
+ *
+ *  @param ctx   Pointer to context
+ *  @param token Previous token
+ */
 void shli_continue(SHLInplaceContext* ctx, SHLITokenInfo token);
 
+// ------------------------- ----- -------------------------
 
 
 
 }
-
 
 
 
@@ -980,15 +1123,15 @@ typedef struct
 
     /** obj_offset
      *
-     *  Will be moved to SCLCommandDescriptor
+     *  Moved to SCLCommandDescriptor
      */
-    uint16_t obj_offset;
+    // uint16_t obj_offset;
 
     /** padding
      *
      *  Padding to 8 bytes
      */
-    //uint16_t padding[1 + (sizeof(void*) == 8 ? 2 : 0)];
+    uint16_t padding[1 + (sizeof(void*) == 8 ? 2 : 0)];
 } SCLArgumentDescriptor;
 
 
@@ -1001,24 +1144,78 @@ typedef struct
 extern "C" {
 
 
+
 #define SCLC_FLAG_VA_ARG 0x01
 
+
+/** SCLExecuteError
+ */
 typedef struct
 {
+    /// error
+    /// @see SCLError
     uint8_t error;
+
+    /// token
+    /// Token index
     uint8_t token;
 } SCLExecuteError;
 
+
+/** SCLCommandDescriptor
+ */
 typedef struct
 {
+    /** execute
+     *
+     *  Execute with arguments packed to object
+     *
+     *  @param obj_buffer Raw pointer to packed object
+     *  @param flags      Pointer to flags table (now not implemented)
+     *  @param size       size of flags table
+     *  @param @see SCLExecuteError
+     */
     SCLExecuteError (*execute)(void* obj_buffer, const uint16_t* flags, size_t size);
+
+    /** arguments
+     *
+     *  Table to arguments descriptors pointers
+     */
     const SCLArgumentDescriptor* const* arguments;
+
+    /** arguments_opaques
+     *
+     *  Table to arguments opaques
+     */
     const void* const* arguments_opaques;
+
+    /** arguments_offsets
+     *
+     *  Tsble to arguments offsets in body
+     */
+    const uint16_t* arguments_offsets;
+
+    /** arg_count
+     */
     uint8_t arg_count;
+
+    /** flags
+     *
+     *  combination of SCLC_FLAG_*
+     */
     uint8_t flags;
+
+    /** name_size
+     */
     uint8_t name_size;
+
+    /** pd
+     *
+     *  Padding to 8 bytes
+     */
     uint8_t pd[5];
 } SCLCommandDescriptor;
+
 
 
 }
@@ -1030,7 +1227,8 @@ struct SCLCommandDescriptorWithName
     char name_continue[name_size];
 };
 
-static_assert(sizeof(SCLCommandDescriptorWithName<8>) - sizeof(void*) * 3 - 8 == 8, "Align error");
+static_assert(sizeof(SCLCommandDescriptorWithName<8>) - sizeof(SCLCommandDescriptor) == 8, "Align error");
+
 
 
 
@@ -1038,24 +1236,63 @@ static_assert(sizeof(SCLCommandDescriptorWithName<8>) - sizeof(void*) * 3 - 8 ==
 extern "C" {
 
 
+
+/** SCLAllocator
+ */
 typedef struct
 {
+    /** alloc
+     *
+     *  @param  size sizeof of object
+     *  @return allocated object
+     */
     void* (*alloc)(size_t size);
-    void (*release)(void* ptr, size_t);
+
+    /** release
+     *
+     *  @param  ptr  pointer to allocated object
+     *  @param  size sizeof of allocated object
+     */
+    void (*release)(void* ptr, size_t size);
 } SCLAllocator;
 
+
+/** scl_execute_inplace
+ *
+ *  Parse, pack arguments and execute
+ *
+ *  @param cmd     Descriptor of executing command
+ *  @param alloc   Allocator for arguments
+ *  @param cmdline Parsed inplcace command line, first argument token
+ *  @param size    size of cmdline in bytes
+ *  @return Error while parsing arguments or error from SCLCommandDescriptor::execute
+ */
 SCLExecuteError scl_execute_inplace(const SCLCommandDescriptor* cmd,
                                     const SCLAllocator* alloc,
                                     char* cmdline,
                                     size_t size);
 
-SCLExecuteError scl_find_and_execute_inplace(const SCLCommandDescriptor * const *cmd,
+
+/** scl_find_and_execute_inplace
+ *
+ *  Find command and call scl_execute_inplace
+ *
+ *  @param cmds    Descriptors table
+ *  @param count   Count of table
+ *  @param alloc   Allocator for arguments
+ *  @param cmdline Parsed inplcace command line, first argument token
+ *  @param size    size of cmdline in bytes
+ *  @return SCLE_CommandNotFound or error from scl_execute_inplace
+ */
+SCLExecuteError scl_find_and_execute_inplace(const SCLCommandDescriptor * const *cmds,
                                              size_t count,
                                              const SCLAllocator *alloc,
                                              char *cmdline, size_t size);
 
 
+
 }
+
 
 
 
@@ -1081,7 +1318,7 @@ void* alloc_arguments_buffer(const SCLCommandDescriptor* cmd, const SCLAllocator
     size_t size = 1;
     for (uint8_t i = 0; i < cmd->arg_count; i++)
     {
-        size_t sz = cmd->arguments[i]->obj_offset + cmd->arguments[i]->obj_size;
+        size_t sz = cmd->arguments_offsets[i] + cmd->arguments[i]->obj_size;
         if (sz > size)
             size = sz;
     }
@@ -1096,8 +1333,8 @@ void free_arguments_buffer(const SCLCommandDescriptor* cmd, const SCLAllocator* 
     for (uint8_t i = 0; i < cmd->arg_count; i++)
     {
         if (cmd->arguments[i]->destruct)
-            cmd->arguments[i]->destruct((char*)buffer + cmd->arguments[i]->obj_offset);
-        size_t sz = cmd->arguments[i]->obj_offset + cmd->arguments[i]->obj_size;
+            cmd->arguments[i]->destruct((char*)buffer + cmd->arguments_offsets[i]);
+        size_t sz = cmd->arguments_offsets[i] + cmd->arguments[i]->obj_size;
         if (sz > size)
             size = sz;
     }
@@ -1136,7 +1373,7 @@ SCLExecuteError parse_arguments(const SCLCommandDescriptor* cmd,
         }
         else if (is_argument(token.token))
         {
-            void* arg = (char*)arguments + cmd->arguments[arg_index]->obj_offset;
+            void* arg = (char*)arguments + cmd->arguments_offsets[arg_index];
             SCLError err = (SCLError)cmd->arguments[arg_index]->parse((cmd->arguments_opaques ? cmd->arguments_opaques[arg_index] : NULL), arg, token);
             if (err != SCLE_NoError)
             {
@@ -1215,29 +1452,84 @@ SCLExecuteError SCL_EXPORT_API_AFTER_TYPE
 
 
 
-
 extern "C" {
 
 
-
-
+/** SCLConsoleBufferContext
+ */
 typedef struct
 {
+    /** write
+     *
+     *  @param opaque SCLConsoleBufferContext::opaque
+     *  @param data   Data to console
+     *  @param size   size of data
+     */
     void (*write)(void* opaque, const void* data, size_t size);
+
+    /** execute
+     *
+     *  Will be called when reached '\n', '\r'
+     *
+     *  @param opaque SCLConsoleBufferContext::opaque
+     *  @param buffer Command line buffer, after call buffer will be reused
+     *  @param size   size of buffer
+     */
     void (*execute)(void* opaque, void* buffer, size_t size);
 
+    /** colors
+     *
+     *  Table of 256 ansi colors for every token
+     *  @see SHLToken
+     */
     const uint8_t* colors;
 
+
+    /** opaque
+     *  User opaque
+     */
     void* opaque;
+
+    /** buffer
+     *  Commands buffer
+     */
     uint8_t* buffer;
+
+    /** buffer_size
+     *  Full buffer size
+     */
     uint16_t buffer_size;
+
+    /** size
+     *  Used size
+     */
     uint16_t size;
+
+    /** cursor
+     *  Cursor position
+     */
     uint16_t cursor;
+
+    /** escape_index
+     *  Escape cursor position after SCLConsoleBufferContext::size
+     */
     uint8_t escape_index;
+
+    /** escape_stack_size
+     *  Count of collected escapes after SCLConsoleBufferContext::size
+     */
     uint8_t escape_stack_size;
 } SCLConsoleBufferContext;
 
 
+/** sclcb_make_context
+ *
+ * @param  buffer Command line buffer
+ * @param  size   Size of buffer
+ * @param  opaque User opaque
+ * @param  colors 256 ansi colors
+ * @return Completed context
+ */
 SCLConsoleBufferContext sclcb_make_context(void* buffer, uint16_t size,
                                            void* opaque,
                                            void (*write)(void* opaque, const void* data, size_t size),
@@ -1245,7 +1537,21 @@ SCLConsoleBufferContext sclcb_make_context(void* buffer, uint16_t size,
                                            const uint8_t* colors);
 
 
+/** sclcb_on_char
+ *
+ *  Put next char to buffer
+ *
+ * @param ctx Pointer to context
+ * @param ch  char to put
+ */
 void sclcb_on_char(SCLConsoleBufferContext* ctx, char ch);
+
+/** sclcb_clear
+ *
+ *  Clear buffer
+ *
+ * @param ctx Pointer to context
+ */
 void sclcb_clear(SCLConsoleBufferContext* ctx);
 
 
@@ -1614,6 +1920,7 @@ void SCL_EXPORT_API_AFTER_TYPE sclcb_clear(SCLConsoleBufferContext* ctx)
 
 
 
+
 #define UTILS_H 
 
 #include <stddef.h>
@@ -1622,6 +1929,9 @@ void SCL_EXPORT_API_AFTER_TYPE sclcb_clear(SCLConsoleBufferContext* ctx)
 
 
 
+
+/// StringView
+/// c++11 minimal port std::string_view
 struct StringView
 {
     const char* _data;
@@ -1846,6 +2156,14 @@ for i in range(1, 12 + 1):
 #define SCLA_MAKE_NAME(name) SHL_CONCAT(argument_, name)
 
 
+
+template<typename T>
+void destruct_object(void* ptr)
+{
+    static_cast<T*>(ptr)->~T();
+}
+
+
 template<typename T>
 class DefaultArgument
 {
@@ -1871,6 +2189,14 @@ public:
     {
         return static_cast<const Derrived*>(th)->completes(buffer, buffer_size, token, size);
     }
+
+public:
+    static constexpr SCLArgumentDescriptor sc_descriptor{&destruct_object<Type>,
+                                                         &sc_parse,
+                                                         &sc_completes,
+                                                         (uint16_t)sizeof(Type),
+                                                         0};
+
 };
 
 
@@ -1887,23 +2213,6 @@ using SCLArgumentByTypeT = typename SCLArgumentByType<T>::type;
 
 
 
-template<typename D, typename T>
-class SCLArgumentWrapper;
-
-
-template<typename Derrived, typename R, typename Arg>
-struct SCLArgumentWrapper<Derrived, R (*)(Arg)>
-{
-public:
-    using type = Arg;
-
-public:
-    static size_t sc_completes(const void* th, char* buffer, size_t buffer_size, const char* token, size_t size) noexcept { return 0; }
-
-};
-
-
-
 
 
 #define CMD_COMMAND_H 
@@ -1917,37 +2226,24 @@ public:
 
 
 
-template<typename T>
-void destruct_object(void* ptr)
-{
-    static_cast<T*>(ptr)->~T();
-}
-
-template<typename Elem, typename ArgElem>
-constexpr SCLArgumentDescriptor make_arg_desc()
-{
-    using Arg = typename ArgElem::type;
-    return SCLArgumentDescriptor{destruct_object<typename Arg::type>,
-                                 Arg::sc_parse,
-                                 Arg::sc_completes,
-                                 (uint16_t) (sizeof(typename Arg::type)),
-                                 (uint16_t) Elem::offset};
-}
-
 template<typename Tuple, typename ArgsTuple, typename Indices>
 struct SCLArgumentDescTable;
 
 template<typename Tuple, typename ArgsTuple, size_t... indices>
 struct SCLArgumentDescTable<Tuple, ArgsTuple, std14::index_sequence<indices...>>
 {
-    SCLArgumentDescriptor table[sizeof...(indices)] = {
-        make_arg_desc<tuple_element<indices, Tuple>, tuple_element<indices, ArgsTuple>>()...};
     template<size_t index>
     constexpr const SCLArgumentDescriptor* get_ptr() const
     {
-        return &table[index];
+        return &tuple_element<index, ArgsTuple>::type::sc_descriptor;
+    }
+    template<size_t index>
+    constexpr uint16_t get_offset() const
+    {
+        return get_offset_of<index, Tuple>();
     }
     const SCLArgumentDescriptor* ptr_table[sizeof...(indices)] = {get_ptr<indices>()...};
+    const uint16_t offsets_table[sizeof...(indices)] = {get_offset<indices>()...};
 };
 
 template<typename TypedCommand, typename... Args>
@@ -1983,8 +2279,34 @@ public:
     static constexpr SCLCommandDescriptor sc_descriptor_base{sc_execute,
                                                              sc_arg_descriptors_table.ptr_table,
                                                              Derrived::sc_opaques,
+                                                             sc_arg_descriptors_table.offsets_table,
                                                              (uint8_t) sizeof...(Args)};
 };
+
+constexpr size_t get_alloc_size(const SCLCommandDescriptor* descriptor)
+{
+    size_t max_size = 0;
+    for (size_t i = 0; i < descriptor->arg_count; ++i)
+    {
+        const auto size = descriptor->arguments_offsets[i] + descriptor->arguments[i]->obj_size;
+        if (size > max_size)
+            max_size = size;
+    }
+    return max_size;
+}
+
+constexpr size_t get_max_object_alloc(const SCLCommandDescriptor* const* descriptors,
+                                      size_t count)
+{
+    size_t max_size = 0;
+    for (size_t i = 0; i < count; ++i)
+    {
+        const auto size = get_alloc_size(descriptors[i]);
+        if (size > max_size)
+            max_size = size;
+    }
+    return max_size;
+}
 
 template<size_t _size>
 struct CStringContainer
@@ -2023,6 +2345,7 @@ struct ArgsCommandWrapper<Derrived, R (*)(Args...)> {
     static constexpr SCLCommandDescriptor sc_descriptor_base{&Derrived::sc_execute,
                                                              sc_arg_descriptors_table.ptr_table,
                                                              nullptr,
+                                                             sc_arg_descriptors_table.offsets_table,
                                                              (uint8_t) sizeof...(Args)};
 };
 

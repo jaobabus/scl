@@ -5,4 +5,6 @@ CMakeLists.txt.user*
 ardgen/Ardgen.wpr
 ardgen/__pycache__
 ardgen/enums/__pycache__
+doc/doc
+doc/doc-dark
 

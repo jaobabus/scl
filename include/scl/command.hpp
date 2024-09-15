@@ -11,37 +11,24 @@
 #endif
 
 
-template<typename T>
-void destruct_object(void* ptr)
-{
-    static_cast<T*>(ptr)->~T();
-}
-
-template<typename Elem, typename ArgElem>
-constexpr SCLArgumentDescriptor make_arg_desc()
-{
-    using Arg = typename ArgElem::type;
-    return SCLArgumentDescriptor{destruct_object<typename Arg::type>,
-                                 Arg::sc_parse,
-                                 Arg::sc_completes,
-                                 (uint16_t) (sizeof(typename Arg::type)),
-                                 (uint16_t) Elem::offset};
-}
-
 template<typename Tuple, typename ArgsTuple, typename Indices>
 struct SCLArgumentDescTable;
 
 template<typename Tuple, typename ArgsTuple, size_t... indices>
 struct SCLArgumentDescTable<Tuple, ArgsTuple, std14::index_sequence<indices...>>
 {
-    SCLArgumentDescriptor table[sizeof...(indices)] = {
-        make_arg_desc<tuple_element<indices, Tuple>, tuple_element<indices, ArgsTuple>>()...};
     template<size_t index>
     constexpr const SCLArgumentDescriptor* get_ptr() const
     {
-        return &table[index];
+        return &tuple_element<index, ArgsTuple>::type::sc_descriptor;
+    }
+    template<size_t index>
+    constexpr uint16_t get_offset() const
+    {
+        return get_offset_of<index, Tuple>();
     }
     const SCLArgumentDescriptor* ptr_table[sizeof...(indices)] = {get_ptr<indices>()...};
+    const uint16_t offsets_table[sizeof...(indices)] = {get_offset<indices>()...};
 };
 
 template<typename TypedCommand, typename... Args>
@@ -77,8 +64,34 @@ public:
     static constexpr SCLCommandDescriptor sc_descriptor_base{sc_execute,
                                                              sc_arg_descriptors_table.ptr_table,
                                                              Derrived::sc_opaques,
+                                                             sc_arg_descriptors_table.offsets_table,
                                                              (uint8_t) sizeof...(Args)};
 };
+
+constexpr size_t get_alloc_size(const SCLCommandDescriptor* descriptor)
+{
+    size_t max_size = 0;
+    for (size_t i = 0; i < descriptor->arg_count; ++i)
+    {
+        const auto size = descriptor->arguments_offsets[i] + descriptor->arguments[i]->obj_size;
+        if (size > max_size)
+            max_size = size;
+    }
+    return max_size;
+}
+
+constexpr size_t get_max_object_alloc(const SCLCommandDescriptor* const* descriptors,
+                                      size_t count)
+{
+    size_t max_size = 0;
+    for (size_t i = 0; i < count; ++i)
+    {
+        const auto size = get_alloc_size(descriptors[i]);
+        if (size > max_size)
+            max_size = size;
+    }
+    return max_size;
+}
 
 template<size_t _size>
 struct CStringContainer
@@ -117,6 +130,7 @@ struct ArgsCommandWrapper<Derrived, R (*)(Args...)> {
     static constexpr SCLCommandDescriptor sc_descriptor_base{&Derrived::sc_execute,
                                                              sc_arg_descriptors_table.ptr_table,
                                                              nullptr,
+                                                             sc_arg_descriptors_table.offsets_table,
                                                              (uint8_t) sizeof...(Args)};
 };
 

@@ -40,12 +40,14 @@ SCLArgumentDescriptor my_cmd_arguments[] =
 };
 
 const SCLArgumentDescriptor* my_cmd_arguments_ptr[] = {&my_cmd_arguments[0]};
+const uint16_t my_cmd_offsets[] = {0};
 
 void* my_cmd_arguments_opaque[] = {nullptr};
 
 SCLCommandDescriptor my_command_desc = {&my_cmd_execute,
                                      my_cmd_arguments_ptr,
                                      my_cmd_arguments_opaque,
+                                     my_cmd_offsets,
                                      sizeof(my_cmd_arguments) / sizeof(my_cmd_arguments[0])};
 
 int Example6::run()

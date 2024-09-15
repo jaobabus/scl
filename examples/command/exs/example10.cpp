@@ -20,14 +20,16 @@ namespace
 
 
 SCLC_DeclareCommand(echo,
-                    StringView sv)
+                    StringView sv,
+                    int a,
+                    StringView sv2)
 {
     fwrite(sv.data(), sv.size(), 1, stdout);
     fwrite("\n", 1, 1, stdout);
     return SCLE_NoError;
 }
 
-constexpr const SCLCommandDescriptor* commands[] =
+const SCLCommandDescriptor* commands[] =
 {
     &command_echo.sc_descriptor.base,
 };
@@ -42,6 +44,8 @@ int Example10::run()
     tcgetattr(fileno(stdin), &tios);
     tios.c_lflag &= ~ECHO & ~ICANON;
     tcsetattr(fileno(stdin), 0, &tios);
+
+    auto size = get_max_object_alloc(commands, 1);
 
     auto write = +[](void*, const void* data, size_t size)
     {

@@ -61,6 +61,7 @@ class ParseValue:
 
 class ParseRulePair(ARDPair):
     def __init__(self, ch: int | str, value: ParseValue, put: int | str = None):
+        self.parse_value = value
         super().__init__(key=ch, value=value.cpp()[0], description='', unit_after=ARDConst(put) if put is not None else None)
 
 
@@ -204,6 +205,7 @@ rules = RootRule('rules', [
 
 
 str_rules = render_rules(rules)
+all_rules = rules.expand()
 
 id_map = make_token_id_map()
 
@@ -267,3 +269,24 @@ print(os.path.abspath(os.curdir))
 print("Success"
       if inject_rule_table("../src/parse.c", "ParseRules", content)
       else "Error")
+
+
+def tid(state: str):
+    return f"{hex(abs(hash(state)))}"
+
+
+states = set()
+out = []
+for l in rules:
+    if isinstance(l, TokenPairList):
+        for p in l:
+            if isinstance(l.token, Escape) and p.parse_value.ret:
+                s = f'NotInited[0]'
+            elif isinstance(p.parse_value.value, (Token, Escape)):
+                s = f"{p.parse_value.value.name}[0]"
+            elif isinstance(p.parse_value.value, State):
+                s = f"{l.token.name}[{p.parse_value.value}]"
+            else:
+                s = f'{l.state_str()}'
+            out.append(f'"{l.state_str()}" -> "{s}" [label="is({p.key}), {p.parse_value.data.name}"]')
+print('\n'.join(f"{l};" for l in out))

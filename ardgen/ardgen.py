@@ -19,6 +19,9 @@ class ARDUnit:
         sa = f"{unit.address}" if isinstance(unit.address, str) else f"0x{unit.address:02X}"
         return f"/* -- */ {sa}, // {unit.description}"
     
+    def expand(self) -> list["ARDUnit"]:
+        return [self]
+    
     def setup(self, address: int) -> int:
         self.address = address
         return address
@@ -35,6 +38,7 @@ class ARDPair(ARDUnit):
     key: int | str = None
     value: int | str = None
     unit_after: ARDUnit = None
+    state_str: str = None
     
     def setup(self, address: int) -> int:
         assert self.key is not None
@@ -78,6 +82,12 @@ class RulesList(ARDUnit, list[ARDUnit]):
     def __init__(self, rules: typing.Callable[[], list[ARDUnit]] | list[ARDUnit], **kw):
         super().__init__(**kw)
         self.rules = rules
+    
+    def expand(self) -> list[ARDUnit]:
+        out = []
+        for r in self:
+            out.extend(r.expand())
+        return out
         
     def setup(self, address: int) -> int:
         self.address = address

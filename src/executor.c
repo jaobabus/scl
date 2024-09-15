@@ -1,6 +1,7 @@
 #include <scl/executor.h>
 #include <scl/inplace.h>
 #include <scl/calt.h>
+#include <scl/token.h>
 #include <string.h>
 
 
@@ -22,7 +23,7 @@ void* alloc_arguments_buffer(const SCLCommandDescriptor* cmd, const SCLAllocator
     size_t size = 1;
     for (uint8_t i = 0; i < cmd->arg_count; i++)
     {
-        size_t sz = cmd->arguments[i]->obj_offset + cmd->arguments[i]->obj_size;
+        size_t sz = cmd->arguments_offsets[i] + cmd->arguments[i]->obj_size;
         if (sz > size)
             size = sz;
     }
@@ -37,8 +38,8 @@ void free_arguments_buffer(const SCLCommandDescriptor* cmd, const SCLAllocator* 
     for (uint8_t i = 0; i < cmd->arg_count; i++)
     {
         if (cmd->arguments[i]->destruct)
-            cmd->arguments[i]->destruct((char*)buffer + cmd->arguments[i]->obj_offset);
-        size_t sz = cmd->arguments[i]->obj_offset + cmd->arguments[i]->obj_size;
+            cmd->arguments[i]->destruct((char*)buffer + cmd->arguments_offsets[i]);
+        size_t sz = cmd->arguments_offsets[i] + cmd->arguments[i]->obj_size;
         if (sz > size)
             size = sz;
     }
@@ -77,7 +78,7 @@ SCLExecuteError parse_arguments(const SCLCommandDescriptor* cmd,
         }
         else if (is_argument(token.token))
         {
-            void* arg = (char*)arguments + cmd->arguments[arg_index]->obj_offset;
+            void* arg = (char*)arguments + cmd->arguments_offsets[arg_index];
             SCLError err = (SCLError)cmd->arguments[arg_index]->parse((cmd->arguments_opaques ? cmd->arguments_opaques[arg_index] : NULL), arg, token);
             if (err != SCLE_NoError)
             {

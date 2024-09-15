@@ -39,6 +39,11 @@ class TokenEnum(Enum):
         if isinstance(self, Escape):
             return f"SHLT_Escape{name}"
         return f"SHLT_{name}"
+    
+    def state_str(self) -> str:
+        if isinstance(self, Escape):
+            return f"Escape{self.name}[0]"
+        return f"{self.name}[0]"
 
 
 @dataclass
@@ -57,6 +62,11 @@ class TokenStateFactory:
 class TokenPair:
     state: int = None
     token: TokenEnum = None
+    
+    def state_str(self) -> str:
+        if isinstance(self, Escape):
+            return f"Escape{self.token.name}[{self.state}]"
+        return f"{self.token.name}[{self.state}]"
 
 
 @dataclass

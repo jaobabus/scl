@@ -51,15 +51,15 @@ typedef struct
 
     /** obj_offset
      *
-     *  Will be moved to SCLCommandDescriptor
+     *  Moved to SCLCommandDescriptor
      */
-    uint16_t obj_offset;
+    // uint16_t obj_offset;
 
     /** padding
      *
      *  Padding to 8 bytes
      */
-    //uint16_t padding[1 + (sizeof(void*) == 8 ? 2 : 0)];
+    uint16_t padding[1 + (sizeof(void*) == 8 ? 2 : 0)];
 } SCLArgumentDescriptor;
 
 
